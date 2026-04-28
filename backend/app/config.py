@@ -9,8 +9,8 @@ class Settings(BaseSettings):
     AUTH0_CALLBACK_URL: str = "http://localhost:5173/callback"
     SUPABASE_URL: str | None = None
     SUPABASE_SERVICE_ROLE_KEY: str | None = None
-    OPENROUTER_API_KEY: str | None = None
-    OPENROUTER_MODEL: str | None = None
+    GEMINI_API_KEY: str | None = None
+    GEMINI_MODEL: str = "gemini-1.5-flash"
     FRONTEND_URL: str = "http://localhost:5173"
 
     class Config:

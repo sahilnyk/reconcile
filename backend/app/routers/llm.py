@@ -100,32 +100,14 @@ async def query_llm(payload: dict, user=Depends(get_current_user)):
     invoices_json = json.dumps(invoices, default=str)
     user_msg = f"Question: {question}\n\nINVOICES:\n{invoices_json}"
 
-    if not settings.OPENROUTER_API_KEY or not settings.OPENROUTER_MODEL:
+    if not settings.GEMINI_API_KEY:
         return {
-            "answer": "[stub] LLM not configured. Set OPENROUTER_API_KEY and OPENROUTER_MODEL.",
-            "source_ids": [inv["id"] for inv in invoices],
+            "answer": "LLM not configured. Set GEMINI_API_KEY in .env file.",
+            "source_ids": [],
             "refused": False,
         }
 
-    async with httpx.AsyncClient() as client:
-        resp = await client.post(
-            "https://api.openrouter.ai/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": settings.OPENROUTER_MODEL,
-                "messages": [
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": user_msg},
-                ],
-            },
-            timeout=30,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        answer = data.get("choices", [])[0].get("message", {}).get("content", "")
+    answer = await _query_gemini(SYSTEM_PROMPT, user_msg)
 
     # post-check for hallucinations
     if _post_check(answer, invoices):
@@ -140,3 +122,20 @@ async def query_llm(payload: dict, user=Depends(get_current_user)):
         "source_ids": [inv["id"] for inv in invoices],
         "refused": False,
     }
+
+
+async def _query_gemini(system_prompt: str, user_msg: str) -> str:
+    """Query Google Gemini API using key from .env."""
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/{settings.GEMINI_MODEL}:generateContent?key={settings.GEMINI_API_KEY}",
+            headers={"Content-Type": "application/json"},
+            json={
+                "contents": [{"parts": [{"text": f"{system_prompt}\n\n{user_msg}"}]}],
+                "generationConfig": {"temperature": 0.1, "maxOutputTokens": 2048},
+            },
+            timeout=30,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        return data.get("candidates", [])[0].get("content", {}).get("parts", [])[0].get("text", "")

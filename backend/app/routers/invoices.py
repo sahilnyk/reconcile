@@ -107,49 +107,38 @@ async def get_invoice(invoice_id: str, user=Depends(get_current_user)):
 
 
 async def _extract_invoice(content: bytes) -> dict:
-    if settings.OPENROUTER_API_KEY and settings.OPENROUTER_MODEL:
-        prompt = (
-            "Extract invoice fields as JSON with keys: invoice_number, vendor, invoice_date, due_date, currency, subtotal, tax, total, items (array of {description, quantity, unit_price, total}). "
-            "Return ONLY valid JSON, no markdown fences."
+    if not settings.GEMINI_API_KEY:
+        return {"error": "GEMINI_API_KEY not set in .env"}
+
+    prompt = (
+        "Extract invoice fields as JSON with keys: invoice_number, vendor, invoice_date, due_date, currency, subtotal, tax, total, items (array of {description, quantity, unit_price, total}). "
+        "Return ONLY valid JSON, no markdown fences."
+    )
+    text_content = content.decode(errors="ignore")[:8000]
+    
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/{settings.GEMINI_MODEL}:generateContent?key={settings.GEMINI_API_KEY}",
+            headers={"Content-Type": "application/json"},
+            json={
+                "contents": [{"parts": [{"text": f"{prompt}\n\n{text_content}"}]}],
+                "generationConfig": {"temperature": 0.1, "maxOutputTokens": 2048},
+            },
+            timeout=30,
         )
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(
-                "https://api.openrouter.ai/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": settings.OPENROUTER_MODEL,
-                    "messages": [
-                        {"role": "system", "content": prompt},
-                        {"role": "user", "content": content.decode(errors="ignore")[:8000]},
-                    ],
-                },
-                timeout=30,
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            text = data.get("choices", [])[0].get("message", {}).get("content", "")
-            # strip markdown fences if present
-            text = text.strip()
-            if text.startswith("```"):
-                text = text.split("\n", 1)[-1]
-            if text.endswith("```"):
-                text = text.rsplit("```", 1)[0]
-            try:
-                return json.loads(text.strip())
-            except Exception:
-                return {"error": "could not parse model output", "raw": text[:500]}
-    # fallback mock
-    return {
-        "invoice_number": "INV-123",
-        "vendor": "ACME Supplies",
-        "invoice_date": "2026-04-01",
-        "due_date": "2026-04-30",
-        "currency": "USD",
-        "subtotal": 1000,
-        "tax": 180,
-        "total": 1180,
-        "items": [{"description": "Widgets", "quantity": 10, "unit_price": 100, "total": 1000}],
-    }
+        resp.raise_for_status()
+        data = resp.json()
+        text = data.get("candidates", [])[0].get("content", {}).get("parts", [])[0].get("text", "")
+        return _parse_json_response(text)
+
+
+def _parse_json_response(text: str) -> dict:
+    text = text.strip()
+    if text.startswith("```"):
+        text = text.split("\n", 1)[-1]
+    if text.endswith("```"):
+        text = text.rsplit("```", 1)[0]
+    try:
+        return json.loads(text.strip())
+    except Exception:
+        return {"error": "could not parse model output", "raw": text[:500]}
