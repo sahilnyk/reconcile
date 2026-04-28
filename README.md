@@ -1,4 +1,4 @@
-![Reconcile Logo](./frontend/public/reconcile-logo.png)
+![Reconcile Logo](./reconcile-logo.png)
 
 # Reconcile
 
