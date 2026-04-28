@@ -1,0 +1,18 @@
+INVOICE
+
+Invoice Number: RET-010
+Vendor: Marico Limited
+Invoice Date: 25-02-2024
+Due Date: 25-03-2024
+Currency: INR
+
+Items:
+- Parachute Oil 500ml (Qty: 48 bottles, Unit Price: ₹135, Total: ₹6,480)
+- Saffola Oil 1L (Qty: 36 bottles, Unit Price: ₹165, Total: ₹5,940)
+- Set Wet Gel (Qty: 30 packs, Unit Price: ₹75, Total: ₹2,250)
+- Livon Serum (Qty: 24 bottles, Unit Price: ₹95, Total: ₹2,280)
+- Revive Soap (Qty: 60 bars, Unit Price: ₹25, Total: ₹1,500)
+
+Subtotal: ₹18,450
+GST (18%): ₹3,321
+Total: ₹21,771

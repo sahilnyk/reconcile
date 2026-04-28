@@ -1,0 +1,17 @@
+INVOICE
+
+Invoice Number: RET-005
+Vendor: Amul Dairy
+Invoice Date: 28-01-2024
+Due Date: 28-02-2024
+Currency: INR
+
+Items:
+- Amul Butter 500g (Qty: 40 packs, Unit Price: ₹250, Total: ₹10,000)
+- Amul Milk 1L (Qty: 100 packs, Unit Price: ₹68, Total: ₹6,800)
+- Amul Cheese Slices (Qty: 30 packs, Unit Price: ₹145, Total: ₹4,350)
+- Amul Ice Cream 1L (Qty: 24 tubs, Unit Price: ₹180, Total: ₹4,320)
+
+Subtotal: ₹25,470
+GST (12%): ₹3,056
+Total: ₹28,526

@@ -1,0 +1,18 @@
+INVOICE
+
+Invoice Number: RET-007
+Vendor: Parle Products
+Invoice Date: 10-02-2024
+Due Date: 10-03-2024
+Currency: INR
+
+Items:
+- Parle-G Biscuits (Qty: 200 packs, Unit Price: ₹5, Total: ₹1,000)
+- Monaco Biscuits (Qty: 100 packs, Unit Price: ₹20, Total: ₹2,000)
+- Hide & Seek (Qty: 60 packs, Unit Price: ₹35, Total: ₹2,100)
+- 20-20 Cookies (Qty: 80 packs, Unit Price: ₹25, Total: ₹2,000)
+- KrackJack (Qty: 100 packs, Unit Price: ₹15, Total: ₹1,500)
+
+Subtotal: ₹8,600
+GST (18%): ₹1,548
+Total: ₹10,148

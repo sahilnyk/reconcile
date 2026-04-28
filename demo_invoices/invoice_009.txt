@@ -1,0 +1,18 @@
+INVOICE
+
+Invoice Number: RET-009
+Vendor: Procter & Gamble
+Invoice Date: 20-02-2024
+Due Date: 20-03-2024
+Currency: INR
+
+Items:
+- Ariel Detergent (Qty: 36 packs, Unit Price: ₹175, Total: ₹6,300)
+- Tide Plus (Qty: 40 packs, Unit Price: ₹125, Total: ₹5,000)
+- Whisper Pads (Qty: 60 packs, Unit Price: ₹85, Total: ₹5,100)
+- Pampers Small (Qty: 24 packs, Unit Price: ₹195, Total: ₹4,680)
+- Gillette Razors (Qty: 20 packs, Unit Price: ₹245, Total: ₹4,900)
+
+Subtotal: ₹25,980
+GST (18%): ₹4,676
+Total: ₹30,656

@@ -1,0 +1,18 @@
+INVOICE
+
+Invoice Number: RET-008
+Vendor: Coca-Cola India
+Invoice Date: 15-02-2024
+Due Date: 15-03-2024
+Currency: INR
+
+Items:
+- Coke 750ml (Qty: 48 bottles, Unit Price: ₹40, Total: ₹1,920)
+- Sprite 750ml (Qty: 48 bottles, Unit Price: ₹40, Total: ₹1,920)
+- Thums Up 750ml (Qty: 48 bottles, Unit Price: ₹40, Total: ₹1,920)
+- Maaza 1L (Qty: 24 bottles, Unit Price: ₹65, Total: ₹1,560)
+- Kinley Water 1L (Qty: 48 bottles, Unit Price: ₹20, Total: ₹960)
+
+Subtotal: ₹8,280
+GST (28%): ₹2,318
+Total: ₹10,598

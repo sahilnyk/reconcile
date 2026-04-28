@@ -1,0 +1,18 @@
+INVOICE
+
+Invoice Number: RET-003
+Vendor: ITC Limited
+Invoice Date: 18-01-2024
+Due Date: 18-02-2024
+Currency: INR
+
+Items:
+- Aashirvaad Atta 5kg (Qty: 30 bags, Unit Price: ₹245, Total: ₹7,350)
+- Sunflower Oil 1L (Qty: 48 bottles, Unit Price: ₹145, Total: ₹6,960)
+- YiPPee Noodles (Qty: 100 packs, Unit Price: ₹15, Total: ₹1,500)
+- Bingo Chips (Qty: 60 packs, Unit Price: ₹20, Total: ₹1,200)
+- Classmate Notebooks (Qty: 100 pcs, Unit Price: ₹45, Total: ₹4,500)
+
+Subtotal: ₹21,510
+GST (18%): ₹3,872
+Total: ₹25,382

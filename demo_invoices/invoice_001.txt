@@ -1,0 +1,17 @@
+INVOICE
+
+Invoice Number: RET-001
+Vendor: Hindustan Unilever Limited
+Invoice Date: 05-01-2024
+Due Date: 05-02-2024
+Currency: INR
+
+Items:
+- Surf Excel Detergent 1kg (Qty: 50 packs, Unit Price: ₹120, Total: ₹6,000)
+- Lifebuoy Soap (Qty: 100 bars, Unit Price: ₹35, Total: ₹3,500)
+- Sunsilk Shampoo (Qty: 48 bottles, Unit Price: ₹95, Total: ₹4,560)
+- Closeup Toothpaste (Qty: 72 tubes, Unit Price: ₹55, Total: ₹3,960)
+
+Subtotal: ₹18,020
+GST (18%): ₹3,244
+Total: ₹21,264

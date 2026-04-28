@@ -1,0 +1,18 @@
+INVOICE
+
+Invoice Number: RET-006
+Vendor: Dabur India
+Invoice Date: 05-02-2024
+Due Date: 05-03-2024
+Currency: INR
+
+Items:
+- Dabur Honey 500g (Qty: 24 bottles, Unit Price: ₹215, Total: ₹5,160)
+- Chyawanprash 1kg (Qty: 20 jars, Unit Price: ₹285, Total: ₹5,700)
+- Dabur Red Paste (Qty: 48 tubes, Unit Price: ₹65, Total: ₹3,120)
+- Amla Hair Oil (Qty: 36 bottles, Unit Price: ₹95, Total: ₹3,420)
+- Glucose D (Qty: 30 packs, Unit Price: ₹55, Total: ₹1,650)
+
+Subtotal: ₹19,050
+GST (18%): ₹3,429
+Total: ₹22,479
