@@ -20,6 +20,7 @@ import {
   AlertTriangle,
   Search,
   Filter,
+  Database,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +30,19 @@ interface UploadFile extends FileWithPreview {
   error?: string;
 }
 
+const DEMO_INVOICES = [
+  { name: 'invoice_001.txt', path: '/demo_invoices/invoice_001.txt' },
+  { name: 'invoice_002.txt', path: '/demo_invoices/invoice_002.txt' },
+  { name: 'invoice_003.txt', path: '/demo_invoices/invoice_003.txt' },
+  { name: 'invoice_004.txt', path: '/demo_invoices/invoice_004.txt' },
+  { name: 'invoice_005.txt', path: '/demo_invoices/invoice_005.txt' },
+  { name: 'invoice_006.txt', path: '/demo_invoices/invoice_006.txt' },
+  { name: 'invoice_007.txt', path: '/demo_invoices/invoice_007.txt' },
+  { name: 'invoice_008.txt', path: '/demo_invoices/invoice_008.txt' },
+  { name: 'invoice_009.txt', path: '/demo_invoices/invoice_009.txt' },
+  { name: 'invoice_010.txt', path: '/demo_invoices/invoice_010.txt' },
+];
+
 export function InvoicesPage() {
   const { getAccessTokenSilently } = useAuth0();
   const [invoices, setInvoices] = useState<InvoiceSummary[]>([]);
@@ -37,6 +51,7 @@ export function InvoicesPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [loadingDemo, setLoadingDemo] = useState(false);
 
   const [
     { isDragging, errors },
@@ -153,6 +168,24 @@ export function InvoicesPage() {
   const fmt = (n: number | null) =>
     n != null ? new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(n) : "—";
 
+  const loadDemoInvoices = async () => {
+    setLoadingDemo(true);
+    try {
+      const token = await getAccessTokenSilently();
+      for (const demo of DEMO_INVOICES) {
+        const response = await fetch(demo.path);
+        const text = await response.text();
+        const file = new File([text], demo.name, { type: 'text/plain' });
+        await api.uploadInvoice(file, token);
+      }
+      await fetchInvoices();
+    } catch (e) {
+      setError('Failed to load demo invoices');
+    } finally {
+      setLoadingDemo(false);
+    }
+  };
+
   return (
     <div className="p-3 space-y-3 max-w-2xl mx-auto">
       <div className="flex items-center justify-between">
@@ -160,7 +193,21 @@ export function InvoicesPage() {
           <h1 className="text-base font-semibold">Invoices</h1>
           <p className="text-[10px] text-muted-foreground">Manage your invoices</p>
         </div>
-        <span className="text-[10px] text-muted-foreground">{invoices.length}</span>
+        <div className="flex items-center gap-2">
+          {invoices.length === 0 && (
+            <Button
+              onClick={loadDemoInvoices}
+              disabled={loadingDemo}
+              variant="outline"
+              size="sm"
+              className="h-6 text-[10px] px-2 rounded-none border-emerald-200 hover:bg-emerald-50"
+            >
+              <Database className="w-3 h-3 mr-1" />
+              {loadingDemo ? 'Loading...' : 'Load Demo'}
+            </Button>
+          )}
+          <span className="text-[10px] text-muted-foreground">{invoices.length}</span>
+        </div>
       </div>
 
       {/* Upload Area - Compact */}

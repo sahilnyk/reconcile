@@ -4,7 +4,7 @@ import { api, type LlmQueryResponse } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, AlertTriangle } from "lucide-react";
-import { BoltStyleChat } from "@/components/ui/bolt-style-chat";
+import { AnimatedAIChat } from "@/components/ui/animated-ai-chat";
 
 export function QueryPage() {
   const { getAccessTokenSilently } = useAuth0();
@@ -35,11 +35,14 @@ export function QueryPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex flex-col w-full bg-background text-foreground relative overflow-hidden">
-      <BoltStyleChat
-        onSend={(message) => handleSendMessage({ message, files: [], pastedContent: [], model: 'gpt-4o', isThinkingEnabled: false })}
-        disabled={loading}
-      />
+    <div className="min-h-[calc(100vh-4rem)] flex flex-col w-full bg-background text-foreground relative">
+      <div className="flex-1 flex flex-col items-center justify-center w-full">
+        <AnimatedAIChat
+          onSend={(message: string) => handleSendMessage({ message, files: [], pastedContent: [], model: 'gpt-4o', isThinkingEnabled: false })}
+          disabled={loading}
+          placeholder="Ask about your invoices..."
+        />
+      </div>
 
       <div className="w-full max-w-2xl mx-auto px-6 pb-8 space-y-4">
         <AnimatePresence>
