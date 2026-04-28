@@ -1,3 +1,5 @@
+![Reconcile Logo](./frontend/public/reconcile-logo.png)
+
 # Reconcile
 
 An accounting workspace that helps you manage invoices, track expenses, and ask questions about your financial data using AI.
