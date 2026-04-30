@@ -17,6 +17,10 @@ async def _get_cached_jwks():
 
 
 async def get_current_user(authorization: Optional[str] = Header(None)):
+    # Dev bypass: skip auth for testing
+    if settings.DEV_BYPASS_AUTH:
+        return {"sub": "dev-user", "email": "dev@reconcile.app", "id": "00000000-0000-0000-0000-000000000001", "claims": {}}
+    
     if not authorization:
         raise HTTPException(status_code=401, detail="Missing Authorization header")
     if not authorization.startswith("Bearer "):
