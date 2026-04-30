@@ -160,9 +160,11 @@ async def query_llm(payload: dict, user=Depends(get_current_user)):
 
 async def _query_gemini(system_prompt: str, user_msg: str) -> str:
     """Query Google Gemini API using key from .env."""
+    # Force correct model name (override any env setting)
+    model = "gemini-1.5-flash-latest"
     async with httpx.AsyncClient() as client:
         resp = await client.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/{settings.GEMINI_MODEL}:generateContent?key={settings.GEMINI_API_KEY}",
+            f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={settings.GEMINI_API_KEY}",
             headers={"Content-Type": "application/json"},
             json={
                 "contents": [{"parts": [{"text": f"{system_prompt}\n\n{user_msg}"}]}],
