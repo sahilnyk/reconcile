@@ -9,23 +9,57 @@ import httpx
 router = APIRouter(prefix="/api/llm", tags=["llm"])
 
 OUT_OF_SCOPE_PATTERNS = [
-    r"\b(politic|president|election|government|war|military)\b",
-    r"\b(weathe|climate|forecast|temperature)\b",
-    r"\b(recipe|cook|bake|food)\b",
-    r"\b(sport|football|basketball|cricket|tennis)\b",
-    r"\b(movie|film|music|song|celebrity|actor)\b",
-    r"\b(hack|exploit|malware|virus)\b",
-    r"\b(tell me about|explain|what is|who is|how does)\s+(?!invoice|bill|payment|expense|vendor|ledger|tax|account)",
-    r"\b(chat|joke|story|poem)\b",
+    # Politics and government
+    r"\b(politic|president|election|government|war|military|prime minister|pm of|parliament)\b",
+    # General knowledge and facts
+    r"\b(who is|what is|tell me about|explain|describe)\s+(?!my|invoice|bill|payment|expense|vendor|ledger|tax|account|spending|purchase|supplier|deal|transaction)",
+    r"\b(capital of|population of|history of|founder of|ceo of)\b",
+    r"\b(india|usa|china|japan|france|germany|uk)\b",
+    # Science and tech unrelated to invoices
+    r"\b(physics|chemistry|biology|space|planet|star|galaxy)\b",
+    r"\b(programming|coding|python|javascript|react|angular)\b",
+    # Weather and news
+    r"\b(weather|climate|forecast|temperature|news|headline)\b",
+    # Entertainment
+    r"\b(movie|film|music|song|celebrity|actor|netflix|youtube)\b",
+    r"\b(recipe|cook|bake|food|restaurant)\b",
+    r"\b(sport|football|basketball|cricket|tennis|ipl)\b",
+    # Security and hacking
+    r"\b(hack|exploit|malware|virus|crack|bypass)\b",
+    # General chat
+    r"\b(chat|joke|story|poem|hello|hi|hey|how are you|what can you do)\b",
+    # Time and date queries
+    r"\b(current time|what time|what day|what date|today is)\b",
 ]
 
 SYSTEM_PROMPT = (
-    "You are a strict invoice assistant. You must only use the invoice records supplied in the INVOICES section below. "
-    "If the user asks a question that cannot be answered using those records, respond exactly: "
-    "'I cannot answer that from the provided invoice data.' "
-    "Do not provide unrelated commentary, do not browse the web, and do not invent facts. "
-    "Use only the fields: invoice_number, vendor, invoice_date, items (description, quantity, unit_price, total), subtotal, tax, total. "
-    "Provide brief, actionable answers and cite invoice ids when referencing specific rows."
+    "You are STRICTLY an invoice assistant for Reconcile. You ONLY answer questions about invoice data, expenses, vendors, and financial records.\n\n"
+    "STRICT RULES - VIOLATION IS NOT ALLOWED:\n"
+    "1. ONLY answer questions about: invoices, expenses, vendors, spending, purchases, suppliers, tax, ledger, accounts\n"
+    "2. If asked ANYTHING else (history, science, politics, sports, general knowledge, jokes, etc.), respond: 'I can only answer questions about your invoice data.'\n"
+    "3. NEVER use external knowledge - only use the INVOICES data provided below\n"
+    "4. NEVER make up, guess, or hallucinate information\n"
+    "5. NEVER answer 'who is PM of India', 'what is capital of', 'tell me a joke', etc.\n"
+    "6. Keep answers factual based ONLY on the provided invoice records\n\n"
+    "WHAT YOU CAN ANSWER:\n"
+    "- 'What are my expenses this month?'\n"
+    "- 'How many vendors do I have?'\n"
+    "- 'From which vendor have I done the most dealing?'\n"
+    "- 'What is my total spending?'\n"
+    "- 'Show me invoices from Amul'\n"
+    "- 'How much did I spend on beverages?'\n"
+    "- 'Compare spending between HUL and Britannia'\n\n"
+    "WHAT YOU MUST REFUSE:\n"
+    "- 'Who is the PM of India?' → Refuse\n"
+    "- 'What is the weather?' → Refuse\n"
+    "- 'Tell me a joke' → Refuse\n"
+    "- 'What is React?' → Refuse\n"
+    "- 'Capital of France?' → Refuse\n\n"
+    "RESPONSE FORMAT:\n"
+    "- Direct answer using only invoice data\n"
+    "- Cite invoice numbers\n"
+    "- If data insufficient, say 'I cannot answer that from the provided invoice data.'\n\n"
+    "CURRENT INVOICE DATA:\n"
 )
 
 
@@ -79,7 +113,7 @@ async def query_llm(payload: dict, user=Depends(get_current_user)):
 
     if _is_out_of_scope(question):
         return {
-            "answer": "I can only answer questions about your invoices and extracted invoice data.",
+            "answer": "I can only answer questions about your invoices, expenses, vendors, and financial data. Please ask about your spending, invoices, suppliers, or related financial topics.",
             "source_ids": [],
             "refused": True,
         }
