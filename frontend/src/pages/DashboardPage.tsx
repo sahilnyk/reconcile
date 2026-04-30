@@ -7,8 +7,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowUpRight, ArrowDownRight, Search, TrendingDown, TrendingUp, DollarSign, FileText, Users, Receipt } from "lucide-react";
-import { useState } from "react";
+import { ArrowUpRight, ArrowDownRight, Search, TrendingDown, TrendingUp, DollarSign, FileText, Users, Receipt, AlertCircle, RefreshCw } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useAuth0 } from "@auth0/auth0-react";
+import { api, type DashboardSummary, type InvoiceSummary } from "@/lib/api";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -37,7 +39,10 @@ ChartJS.register(
   Filler
 );
 
-// Dummy data for layout preview - Indian context
+// Dev bypass token
+const DEV_TOKEN = "dev-bypass-token";
+
+// Fallback dummy data while loading
 const dummyInvoices = [
   { id: "1", invoice_number: "INV-2024-001", vendor: "Tata Consultancy Services", invoice_date: "2024-01-15", total: 1250000, status: "Paid" },
   { id: "2", invoice_number: "INV-2024-002", vendor: "Infosys Ltd", invoice_date: "2024-01-18", total: 875000, status: "Pending" },
@@ -94,7 +99,7 @@ const monthlyData = {
 };
 
 const expenseCategoryData = {
-  labels: ['Software', 'IT Services', 'Consulting', 'Marketing', 'Infrastructure'],
+  labels: ['Beverages', 'Food', 'Personal Care', 'Dairy', 'Snacks'],
   datasets: [
     {
       data: [450000, 1200000, 2200000, 980000, 1520000],
@@ -208,8 +213,40 @@ const doughnutOptions = {
 };
 
 export function DashboardPage() {
+  const { getAccessTokenSilently, isAuthenticated } = useAuth0();
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [searchTerm, setSearchTerm] = useState('');
+  const [dashboardData, setDashboardData] = useState<DashboardSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const getToken = async (): Promise<string> => {
+    if (isAuthenticated) {
+      return await getAccessTokenSilently();
+    }
+    return DEV_TOKEN;
+  };
+
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        setLoading(true);
+        const token = await getToken();
+        const data = await api.getDashboard(token);
+        setDashboardData(data);
+      } catch (e: any) {
+        console.error('Dashboard fetch error:', e);
+        setError(e?.message || 'Failed to load dashboard');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDashboard();
+
+    // Auto-refresh every 30 seconds for "realtime" feel
+    const interval = setInterval(fetchDashboard, 30000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-IN", {
@@ -226,25 +263,66 @@ export function DashboardPage() {
     });
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string | null) => {
     const styles = {
       Paid: "bg-emerald-100 text-emerald-700",
       Pending: "bg-amber-100 text-amber-700",
       Overdue: "bg-rose-100 text-rose-700",
     };
+    const s = status || "Pending";
     return (
-      <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${styles[status as keyof typeof styles] || "bg-gray-100 text-gray-700"}`}>
-        {status}
+      <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${styles[s as keyof typeof styles] || "bg-gray-100 text-gray-700"}`}>
+        {s}
       </span>
     );
   };
 
-  const filteredInvoices = dummyInvoices.filter(inv => {
+  // Use real data if available, otherwise fallback
+  const invoices: InvoiceSummary[] = dashboardData?.recent_invoices || [];
+  const totalExpenses = dashboardData?.total_expenses || 0;
+  const totalInvoices = invoices.length;
+  const vendors = dashboardData?.expenses_by_vendor || {};
+  const vendorCount = Object.keys(vendors).length;
+
+  // Real P&L values from API
+  const revenue = dashboardData?.pl?.revenue || 0;
+  const netProfit = dashboardData?.pl?.net || 0;
+  const isProfit = netProfit >= 0;
+
+  const filteredInvoices = invoices.filter(inv => {
     const matchesStatus = statusFilter === 'All' || inv.status === statusFilter;
-    const matchesSearch = inv.vendor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      inv.invoice_number.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (inv.vendor?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (inv.invoice_number?.toLowerCase() || '').includes(searchTerm.toLowerCase());
     return matchesStatus && matchesSearch;
   });
+
+  // Prepare chart data from real vendors - show ALL vendors
+  const sortedVendors = Object.entries(vendors)
+    .sort((a, b) => b[1] - a[1]) // Sort by total spent descending
+    .slice(0, 10); // Show top 10 vendors
+  const vendorNames = sortedVendors.map(([name]) => name);
+  const vendorTotals = sortedVendors.map(([, total]) => total);
+
+  const realVendorData = vendorNames.length > 0 ? {
+    labels: vendorNames.map(v => v.length > 15 ? v.substring(0, 12) + '...' : v),
+    datasets: [{
+      label: 'Total Spent (₹)',
+      data: vendorTotals,
+      backgroundColor: [
+        'rgba(59, 130, 246, 0.8)',
+        'rgba(16, 185, 129, 0.8)',
+        'rgba(245, 158, 11, 0.8)',
+        'rgba(239, 68, 68, 0.8)',
+        'rgba(139, 92, 246, 0.8)',
+        'rgba(6, 182, 212, 0.8)',
+        'rgba(249, 115, 22, 0.8)',
+        'rgba(236, 72, 153, 0.8)',
+        'rgba(99, 102, 241, 0.8)',
+        'rgba(20, 184, 166, 0.8)',
+      ],
+      borderRadius: 4,
+    }],
+  } : vendorData;
 
   return (
     <div className="p-5 space-y-5">
@@ -254,47 +332,67 @@ export function DashboardPage() {
           <p className="text-xs text-muted-foreground">Track your business performance and analytics</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">Last 30 days</span>
-          <button className="px-3 py-1.5 text-xs bg-emerald-600 text-white rounded-md hover:bg-emerald-700">
-            Export Report
+          <button
+            onClick={() => window.location.reload()}
+            className="px-3 py-1.5 text-xs bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 flex items-center gap-1"
+          >
+            <RefreshCw className="w-3 h-3" />
+            Refresh
           </button>
+          <span className="text-xs text-muted-foreground">Live data</span>
         </div>
       </div>
+
+      {loading && (
+        <div className="flex items-center justify-center py-8">
+          <p className="text-sm text-muted-foreground">Loading dashboard...</p>
+        </div>
+      )}
+
+      {error && (
+        <div className="flex items-center justify-center py-8">
+          <p className="text-sm text-rose-600">Error: {error}</p>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 border rounded-none">
         <div className="p-4 border-r border-b">
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Total Expenses</p>
-          <p className="text-lg font-bold mt-1 font-mono">{formatCurrency(8245000)}</p>
-          <p className="text-[10px] text-rose-600 mt-0.5 font-medium">+12% from last month</p>
+          <p className="text-lg font-bold mt-1 font-mono">{formatCurrency(totalExpenses)}</p>
+          <p className="text-[10px] text-rose-600 mt-0.5 font-medium">From {totalInvoices} invoices</p>
         </div>
         <div className="p-4 border-r border-b">
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Revenue</p>
-          <p className="text-lg font-bold text-emerald-600 mt-1 font-mono">{formatCurrency(12500000)}</p>
-          <p className="text-[10px] text-emerald-600 mt-0.5 font-medium">+8% from last month</p>
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Revenue (Est.)</p>
+          <p className="text-lg font-bold text-emerald-600 mt-1 font-mono">{formatCurrency(revenue)}</p>
+          <p className="text-[10px] text-emerald-600 mt-0.5 font-medium">Based on 40% markup</p>
         </div>
         <div className="p-4 border-r border-b">
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Net Profit</p>
-          <p className="text-lg font-bold text-emerald-600 mt-1 font-mono">{formatCurrency(4255000)}</p>
-          <p className="text-[10px] text-emerald-600 mt-0.5 font-medium">+15% from last month</p>
+          <p className={`text-lg font-bold mt-1 font-mono ${isProfit ? 'text-emerald-600' : 'text-rose-600'}`}>
+            {formatCurrency(netProfit)}
+          </p>
+          <p className={`text-[10px] mt-0.5 font-medium ${isProfit ? 'text-emerald-600' : 'text-rose-600'}`}>
+            {isProfit ? 'Profit' : 'Loss'}
+          </p>
         </div>
         <div className="p-4 border-r border-b">
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Total Invoices</p>
-          <p className="text-lg font-bold mt-1 font-mono">24</p>
-          <p className="text-[10px] text-muted-foreground mt-0.5 font-medium">8 pending approval</p>
+          <p className="text-lg font-bold mt-1 font-mono">{totalInvoices}</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5 font-medium">Recently added</p>
         </div>
         <div className="p-4 border-r border-b">
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Vendors</p>
-          <p className="text-lg font-bold mt-1 font-mono">12</p>
-          <p className="text-[10px] text-muted-foreground mt-0.5 font-medium">+2 new this month</p>
+          <p className="text-lg font-bold mt-1 font-mono">{vendorCount}</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5 font-medium">Active suppliers</p>
         </div>
         <div className="p-4 border-r border-b">
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Pending</p>
-          <p className="text-lg font-bold mt-1 font-mono">{formatCurrency(1835000)}</p>
-          <p className="text-[10px] text-muted-foreground mt-0.5 font-medium">Due within 7 days</p>
+          <p className="text-lg font-bold mt-1 font-mono">{formatCurrency(totalExpenses)}</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5 font-medium">All invoices</p>
         </div>
         <div className="p-4 border-b lg:border-r-0 col-span-2 md:col-span-4 lg:col-span-1">
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Avg Invoice</p>
-          <p className="text-lg font-bold mt-1 font-mono">{formatCurrency(1035625)}</p>
+          <p className="text-lg font-bold mt-1 font-mono">{formatCurrency(totalInvoices > 0 ? totalExpenses / totalInvoices : 0)}</p>
           <p className="text-[10px] text-muted-foreground mt-0.5 font-medium">Per transaction</p>
         </div>
       </div>
@@ -370,7 +468,7 @@ export function DashboardPage() {
                     >
                       <TableCell className="text-[11px] py-2 px-3 font-medium">{invoice.invoice_number}</TableCell>
                       <TableCell className="text-[11px] py-2 px-3 text-muted-foreground truncate max-w-[120px]">{invoice.vendor}</TableCell>
-                      <TableCell className="text-[11px] py-2 px-3 text-right font-medium">{formatCurrency(invoice.total)}</TableCell>
+                      <TableCell className="text-[11px] py-2 px-3 text-right font-medium">{formatCurrency(invoice.total || 0)}</TableCell>
                       <TableCell className="py-2 px-3 text-center">{getStatusBadge(invoice.status)}</TableCell>
                     </TableRow>
                   ))}
@@ -388,22 +486,19 @@ export function DashboardPage() {
         </div>
 
         <div>
-          <div className="p-4 border-b">
-            <p className="text-sm font-medium">Top Vendors</p>
+          <div className="p-4 border-b flex justify-between items-center">
+            <p className="text-sm font-medium">Top Vendors ({vendorCount} total)</p>
+            {vendorCount === 0 && !loading && (
+              <span className="text-[10px] text-amber-600 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" />
+                No vendors found
+              </span>
+            )}
           </div>
           <div className="p-4">
             <div className="h-56">
               <Bar
-                data={{
-                  labels: dummyVendors.map(v => v.name.split(' ')[0]),
-                  datasets: [{
-                    label: 'Total Spent',
-                    data: dummyVendors.map(v => v.total),
-                    backgroundColor: '#64748b',
-                    hoverBackgroundColor: '#475569',
-                    borderRadius: 0,
-                  }],
-                }}
+                data={realVendorData}
                 options={{
                   responsive: true,
                   maintainAspectRatio: false,
