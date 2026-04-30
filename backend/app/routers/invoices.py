@@ -6,6 +6,7 @@ from ..config import settings
 import uuid
 import json
 import httpx
+import re
 
 router = APIRouter(prefix="/api/invoices", tags=["invoices"])
 
@@ -17,18 +18,19 @@ async def upload_invoice(file: UploadFile = File(...), user=Depends(get_current_
         raise HTTPException(status_code=401, detail="User not found in database")
 
     sb = get_supabase_client()
-    bucket = "invoices"
+    bucket = "Invoices"
     file_id = f"{uuid.uuid4()}-{file.filename}"
     content = await file.read()
     try:
         sb.storage.from_(bucket).upload(file_id, content)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"storage error: {e}")
+        # Log error but continue - storage is optional, metadata is stored in DB
+        print(f"Storage upload warning (non-critical): {e}")
 
-    # call extraction (OpenRouter or mock)
+    # call extraction (Gemini)
     parsed = await _extract_invoice(content)
     if "error" in parsed:
-        return JSONResponse({"status": "error", "errors": [parsed["error"]]})
+        raise HTTPException(status_code=500, detail=parsed["error"])
 
     # insert invoice row
     invoice_payload = {
@@ -41,6 +43,7 @@ async def upload_invoice(file: UploadFile = File(...), user=Depends(get_current_
         "subtotal": parsed.get("subtotal"),
         "tax": parsed.get("tax"),
         "total": parsed.get("total"),
+        "status": parsed.get("status", "Pending"),
         "metadata": parsed,
     }
     inv_resp = sb.table("invoices").insert(invoice_payload).execute()
@@ -87,7 +90,7 @@ async def list_invoices(user=Depends(get_current_user)):
     if not user_id:
         raise HTTPException(status_code=401, detail="User not found")
     sb = get_supabase_client()
-    resp = sb.table("invoices").select("id, invoice_number, vendor, invoice_date, total, currency, created_at").eq("user_id", user_id).order("created_at", desc=True).execute()
+    resp = sb.table("invoices").select("id, invoice_number, vendor, invoice_date, total, currency, status, created_at").eq("user_id", user_id).order("created_at", desc=True).execute()
     return resp.data
 
 
@@ -106,15 +109,86 @@ async def get_invoice(invoice_id: str, user=Depends(get_current_user)):
     return invoice
 
 
+def _parse_text_invoice(text: str) -> dict:
+    """Parse simple text invoice format without needing Gemini API."""
+    result = {
+        "invoice_number": None,
+        "vendor": None,
+        "invoice_date": None,
+        "due_date": None,
+        "currency": "INR",
+        "subtotal": None,
+        "tax": None,
+        "total": None,
+        "items": []
+    }
+    
+    # Extract fields using regex
+    inv_match = re.search(r'Invoice Number:\s*(\S+)', text)
+    if inv_match:
+        result["invoice_number"] = inv_match.group(1)
+    
+    vendor_match = re.search(r'Vendor:\s*(.+)', text)
+    if vendor_match:
+        result["vendor"] = vendor_match.group(1).strip()
+    
+    date_match = re.search(r'Invoice Date:\s*(\d{2})-(\d{2})-(\d{4})', text)
+    if date_match:
+        # Convert DD-MM-YYYY to YYYY-MM-DD
+        result["invoice_date"] = f"{date_match.group(3)}-{date_match.group(2)}-{date_match.group(1)}"
+    
+    due_match = re.search(r'Due Date:\s*(\d{2})-(\d{2})-(\d{4})', text)
+    if due_match:
+        # Convert DD-MM-YYYY to YYYY-MM-DD
+        result["due_date"] = f"{due_match.group(3)}-{due_match.group(2)}-{due_match.group(1)}"
+    
+    currency_match = re.search(r'Currency:\s*(\w+)', text)
+    if currency_match:
+        result["currency"] = currency_match.group(1)
+    
+    # Parse items
+    item_pattern = r'-\s*(.+?)\s*\(Qty:\s*(\d+)\s*\w+,?\s*Unit Price:\s*Rs?\.?(\d+),?\s*Total:\s*Rs?\.?(\d+)\)'
+    for match in re.finditer(item_pattern, text):
+        result["items"].append({
+            "description": match.group(1).strip(),
+            "quantity": int(match.group(2)),
+            "unit_price": int(match.group(3)),
+            "total": int(match.group(4))
+        })
+    
+    # Parse totals
+    subtotal_match = re.search(r'Subtotal:\s*Rs?\.?(\d[\d,]*)', text)
+    if subtotal_match:
+        result["subtotal"] = int(subtotal_match.group(1).replace(',', ''))
+    
+    tax_match = re.search(r'GST\s*\(\d+%\):\s*Rs?\.?(\d[\d,]*)', text)
+    if tax_match:
+        result["tax"] = int(tax_match.group(1).replace(',', ''))
+    
+    total_match = re.search(r'Total:\s*Rs?\.?(\d[\d,]*)', text)
+    if total_match:
+        result["total"] = int(total_match.group(1).replace(',', ''))
+    
+    return result
+
+
 async def _extract_invoice(content: bytes) -> dict:
+    text_content = content.decode(errors="ignore")[:8000]
+    
+    # Try to parse as text invoice first (no API needed)
+    if "Invoice Number:" in text_content and "Vendor:" in text_content:
+        parsed = _parse_text_invoice(text_content)
+        if parsed["invoice_number"] and parsed["total"]:
+            return parsed
+    
+    # Fall back to Gemini API if available
     if not settings.GEMINI_API_KEY:
-        return {"error": "GEMINI_API_KEY not set in .env"}
+        return {"error": "GEMINI_API_KEY not set in .env and could not parse as text invoice"}
 
     prompt = (
         "Extract invoice fields as JSON with keys: invoice_number, vendor, invoice_date, due_date, currency, subtotal, tax, total, items (array of {description, quantity, unit_price, total}). "
         "Return ONLY valid JSON, no markdown fences."
     )
-    text_content = content.decode(errors="ignore")[:8000]
     
     async with httpx.AsyncClient() as client:
         resp = await client.post(
