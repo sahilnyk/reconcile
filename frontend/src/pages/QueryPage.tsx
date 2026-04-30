@@ -6,11 +6,22 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, AlertTriangle } from "lucide-react";
 import { AnimatedAIChat } from "@/components/ui/animated-ai-chat";
 
+// Dev bypass token - used when Auth0 is not configured
+const DEV_TOKEN = "dev-bypass-token";
+
 export function QueryPage() {
-  const { getAccessTokenSilently } = useAuth0();
+  const { getAccessTokenSilently, isAuthenticated } = useAuth0();
   const [result, setResult] = useState<LlmQueryResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const getToken = async (): Promise<string> => {
+    if (isAuthenticated) {
+      return await getAccessTokenSilently();
+    }
+    // Return dev token for bypass mode
+    return DEV_TOKEN;
+  };
 
   const handleSendMessage = async (data: {
     message: string;
@@ -24,7 +35,7 @@ export function QueryPage() {
     setError(null);
     setResult(null);
     try {
-      const token = await getAccessTokenSilently();
+      const token = await getToken();
       const res = await api.queryLlm(data.message, token);
       setResult(res);
     } catch (e: unknown) {
