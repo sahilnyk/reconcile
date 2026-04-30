@@ -158,18 +158,56 @@ async def query_llm(payload: dict, user=Depends(get_current_user)):
     }
 
 
+async def _list_available_models(api_key: str) -> list[str]:
+    """List available Gemini models from Google API."""
+    async with httpx.AsyncClient() as client:
+        url = f"https://generativelanguage.googleapis.com/v1/models?key={api_key}"
+        try:
+            resp = await client.get(url, timeout=10)
+            if resp.status_code == 200:
+                data = resp.json()
+                models = [m.get("name", "").replace("models/", "") for m in data.get("models", [])]
+                # Filter for gemini models that support generateContent
+                gemini_models = [m for m in models if "gemini" in m.lower()]
+                print(f"Available Gemini models: {gemini_models}")
+                return gemini_models
+        except Exception as e:
+            print(f"Error listing models: {e}")
+    return []
+
+
 async def _query_gemini(system_prompt: str, user_msg: str) -> str:
     """Query Google Gemini API using key from .env."""
-    # Use the base gemini-pro model which is always available
-    model = "gemini-pro"
     api_key = settings.GEMINI_API_KEY
     
     if not api_key:
         return "Error: GEMINI_API_KEY not configured"
     
+    # List available models first
+    available_models = await _list_available_models(api_key)
+    
+    # Try models in order of preference
+    preferred_models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro", "gemini-1.0-pro"]
+    model = None
+    
+    for preferred in preferred_models:
+        if preferred in available_models:
+            model = preferred
+            break
+    
+    # Fallback to first available if none of preferred found
+    if not model and available_models:
+        model = available_models[0]
+    
+    # Last resort fallback
+    if not model:
+        model = "gemini-1.5-flash"
+    
+    print(f"Using model: {model}")
+    
     async with httpx.AsyncClient() as client:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
-        print(f"Calling Gemini API: {url[:80]}...")  # Debug log
+        url = f"https://generativelanguage.googleapis.com/v1/models/{model}:generateContent?key={api_key}"
+        print(f"Calling: {url[:70]}...")
         
         resp = await client.post(
             url,
