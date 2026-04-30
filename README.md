@@ -1,8 +1,6 @@
 <p align="center">
-  <img src="./reconcile-logo.png" alt="Reconcile Logo" width="120">
+  <img src="./reconcile-logo.png" alt="Reconcile Logo" width="250">
 </p>
-
-<h1 align="center">Reconcile</h1>
 
 An accounting workspace that helps you manage invoices, track expenses, and ask questions about your financial data using AI.
 
