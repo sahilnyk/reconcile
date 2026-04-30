@@ -176,57 +176,61 @@ async def _list_available_models(api_key: str) -> list[str]:
     return []
 
 
+async def _try_model(model: str, system_prompt: str, user_msg: str, api_key: str) -> str | None:
+    """Try a single model, return response or None if failed."""
+    async with httpx.AsyncClient() as client:
+        url = f"https://generativelanguage.googleapis.com/v1/models/{model}:generateContent?key={api_key}"
+        print(f"Trying model {model}...")
+        
+        try:
+            resp = await client.post(
+                url,
+                headers={"Content-Type": "application/json"},
+                json={
+                    "contents": [{"parts": [{"text": f"{system_prompt}\n\n{user_msg}"}]}],
+                    "generationConfig": {"temperature": 0.1, "maxOutputTokens": 1024},
+                },
+                timeout=15,
+            )
+            
+            if resp.status_code == 200:
+                data = resp.json()
+                candidates = data.get("candidates", [])
+                if candidates:
+                    return candidates[0].get("content", {}).get("parts", [])[0].get("text", "")
+            elif resp.status_code == 429 or resp.status_code == 503:
+                print(f"Model {model} is busy ({resp.status_code}), trying next...")
+                return None
+            else:
+                print(f"Model {model} error {resp.status_code}: {resp.text[:100]}")
+                return None
+        except Exception as e:
+            print(f"Model {model} exception: {e}")
+            return None
+    return None
+
+
 async def _query_gemini(system_prompt: str, user_msg: str) -> str:
-    """Query Google Gemini API using key from .env."""
+    """Query Google Gemini API with fallback to multiple models."""
     api_key = settings.GEMINI_API_KEY
     
     if not api_key:
         return "Error: GEMINI_API_KEY not configured"
     
-    # List available models first
-    available_models = await _list_available_models(api_key)
+    # Models to try in order (from reliable to experimental)
+    models_to_try = [
+        "gemini-1.5-flash",
+        "gemini-2.0-flash",
+        "gemini-2.0-flash-lite",
+        "gemini-1.5-flash-001",
+    ]
     
-    # Try models in order of preference
-    preferred_models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro", "gemini-1.0-pro"]
-    model = None
+    # Try each model
+    for model in models_to_try:
+        result = await _try_model(model, system_prompt, user_msg, api_key)
+        if result:
+            print(f"Successfully used model: {model}")
+            return result
     
-    for preferred in preferred_models:
-        if preferred in available_models:
-            model = preferred
-            break
-    
-    # Fallback to first available if none of preferred found
-    if not model and available_models:
-        model = available_models[0]
-    
-    # Last resort fallback
-    if not model:
-        model = "gemini-1.5-flash"
-    
-    print(f"Using model: {model}")
-    
-    async with httpx.AsyncClient() as client:
-        url = f"https://generativelanguage.googleapis.com/v1/models/{model}:generateContent?key={api_key}"
-        print(f"Calling: {url[:70]}...")
-        
-        resp = await client.post(
-            url,
-            headers={"Content-Type": "application/json"},
-            json={
-                "contents": [{"parts": [{"text": f"{system_prompt}\n\n{user_msg}"}]}],
-                "generationConfig": {"temperature": 0.1, "maxOutputTokens": 2048},
-            },
-            timeout=30,
-        )
-        
-        if resp.status_code != 200:
-            error_text = resp.text
-            print(f"Gemini API Error {resp.status_code}: {error_text}")
-            raise HTTPException(status_code=500, detail=f"Gemini API error: {resp.status_code} - {error_text[:200]}")
-        
-        data = resp.json()
-        candidates = data.get("candidates", [])
-        if not candidates:
-            return "No response from AI"
-        
-        return candidates[0].get("content", {}).get("parts", [])[0].get("text", "")
+    # If all models failed
+    raise HTTPException(status_code=503, detail="All AI models are currently busy. Please try again in a few seconds.")
