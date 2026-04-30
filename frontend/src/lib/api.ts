@@ -29,6 +29,7 @@ export interface InvoiceSummary {
   invoice_date: string | null;
   total: number | null;
   currency: string | null;
+  status: string | null;
   created_at: string;
 }
 

@@ -22,6 +22,7 @@ create table if not exists invoices (
   subtotal numeric,
   tax numeric,
   total numeric,
+  status text default 'Pending',
   metadata jsonb,
   created_at timestamptz default now()
 );
