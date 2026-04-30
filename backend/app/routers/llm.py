@@ -160,11 +160,19 @@ async def query_llm(payload: dict, user=Depends(get_current_user)):
 
 async def _query_gemini(system_prompt: str, user_msg: str) -> str:
     """Query Google Gemini API using key from .env."""
-    # Use stable model name
-    model = "gemini-2.0-flash-exp"
+    # Use the base gemini-pro model which is always available
+    model = "gemini-pro"
+    api_key = settings.GEMINI_API_KEY
+    
+    if not api_key:
+        return "Error: GEMINI_API_KEY not configured"
+    
     async with httpx.AsyncClient() as client:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+        print(f"Calling Gemini API: {url[:80]}...")  # Debug log
+        
         resp = await client.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={settings.GEMINI_API_KEY}",
+            url,
             headers={"Content-Type": "application/json"},
             json={
                 "contents": [{"parts": [{"text": f"{system_prompt}\n\n{user_msg}"}]}],
@@ -172,6 +180,15 @@ async def _query_gemini(system_prompt: str, user_msg: str) -> str:
             },
             timeout=30,
         )
-        resp.raise_for_status()
+        
+        if resp.status_code != 200:
+            error_text = resp.text
+            print(f"Gemini API Error {resp.status_code}: {error_text}")
+            raise HTTPException(status_code=500, detail=f"Gemini API error: {resp.status_code} - {error_text[:200]}")
+        
         data = resp.json()
-        return data.get("candidates", [])[0].get("content", {}).get("parts", [])[0].get("text", "")
+        candidates = data.get("candidates", [])
+        if not candidates:
+            return "No response from AI"
+        
+        return candidates[0].get("content", {}).get("parts", [])[0].get("text", "")
