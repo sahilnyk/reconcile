@@ -1,21 +1,13 @@
 <p align="center">
-  <img src="./reconcile-logo.png" alt="Reconcile Logo" width="200">
+  <img src="./reconcile-logo.png" alt="Reconcile Logo" width="150">
 </p>
 
 <h1 align="center">Reconcile</h1>
 <p align="center"><strong>AI-Powered Invoice Management & Accounting System</strong></p>
 
-<p align="center">
-  <a href="#overview">Overview</a> •
-  <a href="#features">Features</a> •
-  <a href="#architecture">Architecture</a> •
-  <a href="#challenges">Challenges</a> •
-  <a href="#installation">Installation</a>
-</p>
-
 ---
 
-## 📋 Overview
+## Overview
 
 **Reconcile** is an intelligent accounting workspace designed to help small businesses, freelancers, and retail shop owners manage their invoices, track expenses, and gain financial insights through natural language conversations with AI. This project was developed as a Final Year Project to demonstrate the practical application of Artificial Intelligence in solving real-world accounting challenges.
 
@@ -37,7 +29,7 @@ Reconcile addresses these challenges by providing:
 
 ---
 
-## ✨ Features
+## Features
 
 ### 1. Invoice Management System
 | Feature | Description |
@@ -75,7 +67,7 @@ Reconcile addresses these challenges by providing:
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -126,7 +118,7 @@ Reconcile addresses these challenges by providing:
 
 ---
 
-## 🚧 Challenges & Solutions
+## Challenges and Solutions
 
 ### Challenge 1: AI Model Selection & Rate Limiting
 **Problem:** Google's Gemini API models frequently experience high demand (503 errors), causing the AI chat to fail.
@@ -184,7 +176,7 @@ useEffect(() => {
 
 ---
 
-## 🎯 Use Cases & Applications
+## Use Cases and Applications
 
 ### For Retail Shop Owners
 - **Track supplier invoices** — Upload all vendor invoices and see spending by supplier
@@ -212,7 +204,7 @@ useEffect(() => {
 
 ---
 
-## 📊 Project Statistics
+## Project Statistics
 
 | Metric | Value |
 |--------|-------|
@@ -226,7 +218,7 @@ useEffect(() => {
 
 ---
 
-## 🚀 Installation Guide
+## Installation Guide
 
 ### Prerequisites
 - Python 3.10 or higher
@@ -271,7 +263,7 @@ Open browser and navigate to `http://localhost:5173`
 
 ---
 
-## 🔧 Environment Variables
+## Environment Variables
 
 ### Backend `.env`
 ```bash
@@ -293,7 +285,7 @@ VITE_AUTH0_CLIENT_ID=your-client-id
 
 ---
 
-## 📝 API Documentation
+## API Documentation
 
 | Endpoint | Method | Description | Auth Required |
 |----------|--------|-------------|---------------|
@@ -305,18 +297,18 @@ VITE_AUTH0_CLIENT_ID=your-client-id
 
 ---
 
-## 🔒 Security Features
+## Security Features
 
-- ✅ **JWT Authentication** — All endpoints protected except health check
-- ✅ **Row-Level Security** — Database policies ensure data isolation
-- ✅ **AI Guardrails** — Prevents off-topic and potentially harmful queries
-- ✅ **Input Validation** — Pydantic models validate all request data
-- ✅ **CORS Protection** — Configured for specific frontend origin
-- ✅ **No Secrets in Code** — All credentials via environment variables
+- **JWT Authentication** — All endpoints protected except health check
+- **Row-Level Security** — Database policies ensure data isolation
+- **AI Guardrails** — Prevents off-topic and potentially harmful queries
+- **Input Validation** — Pydantic models validate all request data
+- **CORS Protection** — Configured for specific frontend origin
+- **No Secrets in Code** — All credentials via environment variables
 
 ---
 
-## 🛣️ Future Enhancements
+## Future Enhancements
 
 | Feature | Description |
 |---------|-------------|
@@ -330,7 +322,7 @@ VITE_AUTH0_CLIENT_ID=your-client-id
 
 ---
 
-## 👨‍💻 Developer
+## Developer
 
 **Final Year Project** — Bachelor of Technology (B.Tech)  
 **Specialization:** Computer Science / Information Technology  
@@ -338,7 +330,7 @@ VITE_AUTH0_CLIENT_ID=your-client-id
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - **Google AI Studio** — For providing Gemini API access
 - **Supabase** — For the excellent managed PostgreSQL service
@@ -348,12 +340,6 @@ VITE_AUTH0_CLIENT_ID=your-client-id
 
 ---
 
-## 📄 License
+## License
 
 This project is created for educational purposes as a Final Year Project.
-
----
-
-<p align="center">
-  <strong>Reconcile</strong> — Making Accounting Intelligent 🚀
-</p>
